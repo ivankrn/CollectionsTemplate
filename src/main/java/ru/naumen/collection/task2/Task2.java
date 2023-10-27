@@ -65,9 +65,6 @@ public class Task2 {
 
     // константная операция, т.к. получение элемента и его значения в HashMap тоже константная операция
     public Collection<Goods> findGoodsByTicket(Ticket ticket) {
-        if (ticketToGoods.containsKey(ticket)) {
-            return ticketToGoods.get(ticket);
-        }
-        return null;
+        return ticketToGoods.get(ticket);
     }
 }
