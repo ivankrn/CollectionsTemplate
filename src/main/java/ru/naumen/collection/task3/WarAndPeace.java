@@ -1,9 +1,7 @@
 package ru.naumen.collection.task3;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * <p>Написать консольное приложение, которое принимает на вход произвольный текстовый файл в формате txt.
@@ -22,28 +20,43 @@ public class WarAndPeace {
 
     // Итоговая сложность O(nlog(n)), где n - количество уникальных слов (ключей мапы) в тексте
     public static void main(String[] args) {
-        // используем HashMap, чтобы ставить в соответствие слову количество его вхождений в текст
-        Map<String, Integer> wordsCount = new HashMap<>();
+        /* используем LinkedHashMap, чтобы ставить в соответствие слову количество его вхождений в текст и быстро
+        итерироваться по ней */
+        Map<String, Integer> wordsCount = new LinkedHashMap<>();
         WordParser parser = new WordParser(WAR_AND_PEACE_FILE_PATH);
         /* будет совершено порядка n вставок (или обновлений значений) в мапу, где n - количество слов в тексте
-         (при этом вставка или получение значения в HashMap - константные операции) */
+        (при этом вставка или получение значения в LinkedHashMap - константные операции) */
         parser.forEachWord(word -> wordsCount.put(word, wordsCount.getOrDefault(word, 0) + 1));
-        /* сортируем записи в мапе по значению (по частоте слова), сложность O(nlog(n)), т.к. метод sorted использует
-         для сортировки объектов TimSort (сложность O(nlog(n))) и получение значения записи в HashMap константная операция,
-         после чего собираем ключи (слова) отсортированных записей мапы в список слов, чтобы можно было обратиться по
-         позиции элемента и напечатать соответствующие элементы */
-        List<String> wordsSortedByFreq = wordsCount.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .toList();
         int limit = 10;
+        /* создаем две очереди с приоритетами, одну под хранение наиболее используемых слов, другую под хранение наименее
+        используемых */
+        PriorityQueue<Map.Entry<String, Integer>> mostFrequentlyUsed =
+                new PriorityQueue<>(limit + 1, Comparator.comparingInt(Map.Entry::getValue));
+        PriorityQueue<Map.Entry<String, Integer>> leastFrequentlyUsed =
+                new PriorityQueue<>(limit + 1, (w1, w2) -> w2.getValue() - w1.getValue());
+        /* далее для каждого элемента из wordsCount добавляем его в обе очереди с приоритетами, при превышении лимита
+        по размеру удаляем наименьший по приоритету элемент из очереди
+        Будет совершено порядка nlog(n) операций, т.к. на каждой итерации по wordsCount (n итераций) мы
+        совершаем две операции вставки в PriorityQueue и при превышении лимита также две операции извлечения наименьшего
+        по приоритету элемента
+        Так как операции вставки и извлечения из PriorityQueue имеют сложность O(log(n)), то итоговая сложность O(n * log(n)) */
+        for (Map.Entry<String, Integer> wordCount : wordsCount.entrySet()) {
+            mostFrequentlyUsed.add(wordCount);
+            if (mostFrequentlyUsed.size() > limit) {
+                mostFrequentlyUsed.poll();
+            }
+            leastFrequentlyUsed.add(wordCount);
+            if (leastFrequentlyUsed.size() > limit) {
+                leastFrequentlyUsed.poll();
+            }
+        }
         System.out.printf("ТОП %d наиболее используемых слов:\n", limit);
-        for (int i = 0; i < limit; i++) {
-            System.out.println(wordsSortedByFreq.get(wordsSortedByFreq.size() - i - 1));
+        while (!mostFrequentlyUsed.isEmpty()) {
+            System.out.println(mostFrequentlyUsed.poll().getKey());
         }
         System.out.printf("ТОП %d наименее используемых слов:\n", limit);
-        for (int i = 0; i < limit; i++) {
-            System.out.println(wordsSortedByFreq.get(i));
+        while (!leastFrequentlyUsed.isEmpty()) {
+            System.out.println(leastFrequentlyUsed.poll().getKey());
         }
     }
 
